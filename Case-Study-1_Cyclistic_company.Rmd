@@ -1,0 +1,213 @@
+---
+title: "CaseStudy_1_cyclistic_company"
+author: "sruthy kannath"
+date: "2022-07-27"
+output:
+  pdf_document: default
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+This is a capstone project as part of google data analytics professional certification. For the analysis I have downloaded the .csv files of cycling data for 12 months from June 2021 to June 2022 (current time period) from the following link mentioned in the capstone project.
+## Scenario 
+
+You are a junior data analyst working in the marketing analyst team at Cyclistic, a bike-share company in Chicago. The director of marketing believes the company’s future success depends on maximizing the number of annual memberships. Therefore, your team wants to understand how casual riders and annual members use Cyclistic bikes differently. From these insights, your team will design a new marketing strategy to convert casual riders into annual members. But first, Cyclistic executives must approve your recommendations, so they must be backed up with compelling data insights and professional data visualizations.
+
+## Prepare
+Collect and merge the 12 months data in to single data frame for the analysis phase. For merging phase I am using R studio and reading and binding .csv files.
+### Install and load libraries
+```{r }
+library(geosphere)
+library(tidyverse)
+library(ggplot2)
+library(lubridate)
+library(dplyr)
+library(readr)
+library(janitor)
+library(data.table)
+library(tidyr)
+```
+### Reading data sets from .csv file and merge in to single data set
+
+
+
+```{r}
+june2021 <- read.csv("Bike_Ride_files/spreadsheets/202106-divvy-tripdata.csv")
+july2021 <- read.csv("Bike_Ride_files/spreadsheets/202107-divvy-tripdata.csv")
+aug2021 <- read.csv("Bike_Ride_files/spreadsheets/202108-divvy-tripdata.csv")
+sep2021 <- read.csv("Bike_Ride_files/spreadsheets/202109-divvy-tripdata.csv")
+oct2021 <- read.csv("Bike_Ride_files/spreadsheets/202110-divvy-tripdata.csv")
+nov2021 <- read.csv("Bike_Ride_files/spreadsheets/202111-divvy-tripdata.csv")
+dec2021 <- read.csv("Bike_Ride_files/spreadsheets/202112-divvy-tripdata.csv")
+jan2022 <- read.csv("Bike_Ride_files/spreadsheets/202201-divvy-tripdata.csv")
+feb2022 <- read.csv("Bike_Ride_files/spreadsheets/202202-divvy-tripdata.csv")
+mar2022 <- read.csv("Bike_Ride_files/spreadsheets/202203-divvy-tripdata.csv")
+apr2022 <- read.csv("Bike_Ride_files/spreadsheets/202204-divvy-tripdata.csv")
+may2022 <- read.csv("Bike_Ride_files/spreadsheets/202205-divvy-tripdata.csv")
+june2022 <- read.csv("Bike_Ride_files/spreadsheets/202206-divvy-tripdata.csv")
+
+```
+### after importing individual data sets from  june 2021 to june 2022 in to single data set
+```{r}
+tripdata<-bind_rows(june2021,july2021,aug2021,sep2021,oct2021,nov2021,dec2021,jan2022,feb2022,mar2022,apr2022,may2022,june2022)
+```
+## Process
+The process phase mainly includes cleaning the data from errors to transform the data in to effective one for analysis
+### checking merged data frame
+```{r}
+#column names of merged data
+
+colnames(tripdata)
+#First 6 rows of trip data
+
+head(tripdata)
+#list of columns and data typs
+str(tripdata)
+
+
+#Adding columns for date, month, year, day of the week into the data frame.
+tripdata$date <- as.Date(tripdata$started_at) 
+tripdata$month <- format(as.Date(tripdata$date), "%m")
+tripdata$day <- format(as.Date(tripdata$date), "%d")
+tripdata$year <- format(as.Date(tripdata$date), "%Y")
+tripdata$day_of_week <- format(as.Date(tripdata$date), "%A")
+colnames(tripdata) #to get the names of all the columns
+
+#Add a ride_length calculation to tripdata
+tripdata$ride_length <- difftime(tripdata$ended_at, tripdata$started_at)
+str(tripdata) #to inspect the structure of the columns
+
+#converting ride_length to numeric value
+tripdata$ride_length<-as.numeric(as.character(tripdata$ride_length))
+is.numeric(tripdata$ride_length)
+
+#ride_distance calculation 
+
+tripdata$ride_distance <- distGeo(matrix(c(tripdata$start_lng, tripdata$start_lat), ncol=2), matrix (c(tripdata$end_lng, tripdata$end_lat), ncol=2))
+#distance in km
+str(tripdata)
+
+#Remove bad data by checking 0 or -ve ride_length
+trip_data_clean <- tripdata[!(tripdata$ride_length <= 0),]
+glimpse(trip_data_clean) 
+```
+
+## ANALYSE
+All the required information are now in one place and ready for exploration.
+### Key tasks
+Aggregate your data so it’s useful and accessible.
+Organize and format your data.
+Perform calculations.
+Identify trends and relationships.
+### Deliverable
+A summary of the analysis.
+
+```{r}
+str(trip_data_clean)
+#summary of claean data
+summary(trip_data_clean)
+```
+
+visualize the count of members and casuals by their ride 
+```{r}
+trip_data_clean %>% 
+    group_by(member_casual) %>% 
+    summarise(ride_count = length(ride_id)) %>% ggplot(aes(x = member_casual, y = ride_count,fill = member_casual))  +
+    geom_col(width=0.5, position = position_dodge(width=0.5))+
+  labs(title ="rideCount vs memebr and Casual")
+
+
+```
+
+- From the above graph its clear that member make more ride count than casuals
+
+
+### orderdata by weekdyas 
+```{r}
+trip_data_clean$day_of_week <- ordered(trip_data_clean$day_of_week, 
+                                    levels=c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
+
+trip_data_clean %>% 
+  group_by(member_casual, day_of_week) %>%  #groups by member_casual
+  summarise(number_of_rides = n() #calculates the number of rides and average duration 
+  ,average_ride_length = mean(ride_length),.groups="drop") %>% # calculates the average duration
+  arrange(member_casual, day_of_week) #sort
+```
+## Visualize the ride data of mebers and casuals by weekdays vs number of rides
+
+```{r}
+trip_data_clean %>%  
+  group_by(member_casual, day_of_week) %>% 
+  summarise(number_of_rides = n(), .groups="drop") %>% 
+  arrange(member_casual, day_of_week)  %>% 
+  ggplot(aes(x = day_of_week, y = number_of_rides, fill = member_casual)) +
+  labs(title ="Total rides by Members and Casual riders Vs. Day of the week") +
+  geom_col(width=0.5, position = position_dodge(width=0.5)) +
+  scale_y_continuous(labels = function(x) format(x, scientific = FALSE))
+```
+
+### Visualize avarge ride time vs of members and casuals by week dyas 
+
+```{r}
+trip_data_clean %>%  
+  group_by(member_casual, day_of_week) %>% 
+  summarise(average_ride_length = mean(ride_length), .groups="drop") %>%
+  ggplot(aes(x = day_of_week, y = average_ride_length, fill = member_casual)) +
+  geom_col(width=0.5, position = position_dodge(width=0.5)) + 
+  labs(title ="Average ride time by Members and Casual riders Vs. Day of the week")
+```
+
+-From the first chart above members took consistent trips throughout the week, but there is less rides in Sunday. For casual riders the most taken rides are in weekends, starting rise in Friday followed by Saturday and Sunday.
+-The average ride length for members are much much less than that of casual riders. Also it can be seen that weekend average ride length is much higher for casual riders along with total rides. 
+
+
+## Visualize total ride and avarage ride time by members and casual in monthly basis
+```{r}
+trip_data_clean$month <- ordered(trip_data_clean$month)
+
+
+trip_data_clean %>% 
+  group_by(member_casual, month) %>%  
+  summarise(number_of_rides = n(), average_ride_length = mean(ride_length), .groups="drop") %>% 
+  arrange(member_casual, month) %>% ggplot(aes(x=month,y=number_of_rides,fill=member_casual))+
+    labs(title ="Total rides by Members and Casual riders Vs. Month", x = "Month", y= "Number Of Rides") +
+  theme(axis.text.x = element_text(angle = 45)) +
+  geom_col(width=0.5, position = position_dodge(width=0.5))
+```
+-The months June, July, August and September are the most busy time of the year among both members and casual riders. It is possible due to winter there is a significant drop in total rides in the months of November, December, January and February for both type of customers. But we can see that member's total rides are higher than casual riders throughout the year except from June, July and August.
+## Analysis and visualization of Rideable type Vs. total rides by Members and casual riders
+```{r}
+
+trip_data_clean %>%
+    group_by(rideable_type) %>% 
+    summarise(count = length(ride_id))
+
+ggplot(trip_data_clean, aes(x=rideable_type, fill=member_casual)) +
+    labs(x="Rideable type", title="Rideable type Vs. total rides by Members and casual riders") +
+    geom_bar()
+```
+-From the above viz we can see that members mostly use classic bikes, followed by electric bikes Docked bikes mostly used by casual riders. Electric bikes are more favored by members.
+
+# Share
+This phase done by presentation .Here I am using R markdown to make my presention doc .
+
+### Deliverables
+- From the above visualization we can conclude on the following insights 
+
+* Members have biggest holding than casual riders
+* In all moths members are more than casual riders
+* In weekends riding time of casual riders are higher
+* Members have a bigger preference for classic bikes, followed by electric bike.
+
+# Act
+Act phase will be done by the Cyclistic's executive team, Director of Marketing (Lily Moreno), Marketing Analytics team on the basis of my analysis. (Data-driven decision making)
+### Top 3 recommendatiosn 
+- Provide weekend offers for casual riders if they are willing to paid member
+- Create market campaigns for attracting more casuals to members
+- Increase the number electric bike as the demand for electric bike are high in trend .
