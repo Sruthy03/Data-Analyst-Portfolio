@@ -1,0 +1,71 @@
+---
+title: "Covid-19-WHO-Data-Exploration -for_INDIA_&_UAE"
+author: "sruthy kannath"
+date: "`r Sys.Date()`"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+This is a Project done with R markdown (Rstudio) to unserstand the covid 19 data for various countries .I am mainly focusing with my native and residing country (i.e, India and Uae).Here I am using latest covid 19 data from WHO by using Special R library named covid19.analytics.
+```{r }
+library(covid19.analytics)
+```
+
+## Data Extraction using method specified by the libraray
+
+```{r}
+covid_data <- covid19.data(case = 'aggregated')
+confirmed_case <- covid19.data(case='ts-confirmed')
+total_cases <- covid19.data(case='ts-ALL')
+```
+
+## Summary of cases with countries
+
+```{r}
+report.summary(Nentries = 10,graphical.output = T)
+```
+
+## Total for Location INDIA and UAE
+```{r}
+tots.per.location(confirmed_case,geo.loc='india')
+tots.per.location(confirmed_case,geo.loc='UNITED ARAB EMIRATES')
+
+
+```
+
+## Growth rate of India and UAE
+```{r}
+growth.rate(confirmed_case,geo.loc='india')
+growth.rate(confirmed_case,geo.loc='UNITED ARAB EMIRATES')
+
+
+```
+## plot total cases globaly
+```{r}
+totals.plt(total_cases)
+totals.plt(total_cases,'India')
+totals.plt(total_cases,'UNITED ARAB EMIRATES')
+
+```
+
+## ploting total cases in world map
+
+```{r}
+live.map(total_cases)
+```
+
+## SIR Model
+```{r}
+growth.rate(confirmed_case,geo.loc='india')
+growth.rate(confirmed_case,geo.loc='UNITED ARAB EMIRATES')
+
+
+```
+
